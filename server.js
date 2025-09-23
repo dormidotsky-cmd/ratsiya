@@ -1,32 +1,41 @@
-const WebSocket = require('ws');
+// server.js
 
-// Создаем WebSocket-сервер на порту 8080
-const wss = new WebSocket.Server({ port: 8080 });
+const app = require('express')();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
 
-console.log('Signaling server started on port 8080');
+const PORT = 3000;
 
-// Обработчик события нового подключения клиента
-wss.on('connection', ws => {
-    console.log('New client connected!');
+app.get('/', (req, res) => {
+    res.send('<h1>Сигнальный сервер работает!</h1>');
+});
 
-    // Обработчик события получения сообщения от клиента
-    ws.on('message', message => {
-        // Мы получили сообщение от одного клиента
-        console.log(`Received message => ${message}`);
+io.on('connection', (socket) => {
+    console.log('Пользователь подключен:', socket.id);
 
-        // Отправляем сообщение всем остальным подключенным клиентам (кроме отправителя)
-        wss.clients.forEach(client => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
+    // Событие для обмена offer
+    socket.on('offer', (data) => {
+        console.log('Получен offer, отправляем его другому клиенту');
+        socket.broadcast.emit('offer', data); // Отправляем всем, кроме отправителя
     });
 
-    // Обработчик события закрытия соединения
-    ws.on('close', () => {
-        console.log('Client disconnected.');
+    // Событие для обмена answer
+    socket.on('answer', (data) => {
+        console.log('Получен answer, отправляем его другому клиенту');
+        socket.broadcast.emit('answer', data);
     });
 
-    // Отправляем приветственное сообщение новому клиенту
-    ws.send('Hello from signaling server!');
+    // Событие для обмена ICE-кандидатами
+    socket.on('iceCandidate', (data) => {
+        console.log('Получен ICE-кандидат, отправляем его другому клиенту');
+        socket.broadcast.emit('iceCandidate', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Пользователь отключен:', socket.id);
+    });
+});
+
+http.listen(PORT, () => {
+    console.log(`Сервер слушает на порту ${PORT}`);
 });
