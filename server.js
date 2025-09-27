@@ -1,41 +1,29 @@
-// server.js
+// signaling-server.js
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 8080 });
+const rooms = new Map();
 
-const app = require('express')();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-
-const PORT = 3000;
-
-app.get('/', (req, res) => {
-    res.send('<h1>Сигнальный сервер работает!</h1>');
-});
-
-io.on('connection', (socket) => {
-    console.log('Пользователь подключен:', socket.id);
-
-    // Событие для обмена offer
-    socket.on('offer', (data) => {
-        console.log('Получен offer, отправляем его другому клиенту');
-        socket.broadcast.emit('offer', data); // Отправляем всем, кроме отправителя
+wss.on('connection', (ws) => {
+    ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        
+        if (data.type === 'join') {
+            ws.roomId = data.roomId;
+            if (!rooms.has(data.roomId)) {
+                rooms.set(data.roomId, new Set());
+            }
+            rooms.get(data.roomId).add(ws);
+        }
+        
+        if (data.type === 'offer' || data.type === 'answer' || data.type === 'ice-candidate') {
+            const room = rooms.get(ws.roomId);
+            if (room) {
+                room.forEach(client => {
+                    if (client !== ws && client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(data));
+                    }
+                });
+            }
+        }
     });
-
-    // Событие для обмена answer
-    socket.on('answer', (data) => {
-        console.log('Получен answer, отправляем его другому клиенту');
-        socket.broadcast.emit('answer', data);
-    });
-
-    // Событие для обмена ICE-кандидатами
-    socket.on('iceCandidate', (data) => {
-        console.log('Получен ICE-кандидат, отправляем его другому клиенту');
-        socket.broadcast.emit('iceCandidate', data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Пользователь отключен:', socket.id);
-    });
-});
-
-http.listen(PORT, () => {
-    console.log(`Сервер слушает на порту ${PORT}`);
 });
