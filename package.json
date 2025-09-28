@@ -1,16 +1,17 @@
 {
-  "name": "webrtc-signaling-server",
+  "name": "voip-signaling-server",
   "version": "1.0.0",
-  "description": "WebRTC signaling server for Android VoIP app",
-  "main": "signaling-server.js",
+  "description": "",
+  "main": "server.js",
   "scripts": {
-    "start": "node signaling-server.js",
-    "dev": "nodemon signaling-server.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "ws": "^8.14.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
   }
 }
